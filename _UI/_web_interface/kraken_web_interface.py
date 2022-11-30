@@ -79,6 +79,7 @@ if os.path.exists(settings_file_path):
 import ini_checker
 from krakenSDR_receiver import ReceiverRTLSDR
 from krakenSDR_signal_processor import SignalProcessor
+from TCPThreadedServer import TCPThreadedServer
 import tooltips
 
 class webInterface():
@@ -341,6 +342,22 @@ class webInterface():
         webInterface_inst.logger.info("Center frequency: {:f} MHz".format(f0))
         webInterface_inst.logger.info("Gain: {:f} dB".format(gain))
 
+    def update_daq(self, f0, gain) :
+        if self.module_signal_processor.run_processing:
+            self.daq_center_freq = f0
+            self.config_daq_rf(f0,gain)
+
+            for i in range(self.module_signal_processor.max_vfos):
+                self.module_signal_processor.vfo_freq[i] = f0
+
+            wavelength = 300 / self.daq_center_freq
+
+            if self.module_signal_processor.DOA_ant_alignment == "UCA":
+                # Convert RADIUS to INTERELEMENT SPACING
+                inter_elem_spacing = (np.sqrt(2)*self.ant_spacing_meters*np.sqrt(1-np.cos(np.deg2rad(360/self.module_signal_processor.channel_number))))
+                self.module_signal_processor.DOA_inter_elem_space = inter_elem_spacing / wavelength
+            else:
+                self.module_signal_processor.DOA_inter_elem_space = self.ant_spacing_meters / wavelength
 
 def read_config_file_dict(config_fname=daq_config_filename):
     parser = ConfigParser()
@@ -454,6 +471,16 @@ def get_preconfigs(config_files_path):
 #          Prepare Dash application         #
 ############################################
 webInterface_inst = webInterface()
+
+server = TCPThreadedServer(
+        '0.0.0.0',
+        8008,
+        sp = webInterface_inst,
+        timeout=86400,
+        debug=True,
+        debug_data=True
+        )
+server.start()
 
 #############################################
 #       Prepare component dependencies      #
@@ -1759,25 +1786,13 @@ def update_daq_status():
     State(component_id ="daq_rx_gain"           , component_property='value')],
 )
 def update_daq_params(input_value, f0, gain):
+    webInterface_inst.update_daq(f0, gain)
+
     if webInterface_inst.module_signal_processor.run_processing:
-        webInterface_inst.daq_center_freq = f0
-        webInterface_inst.config_daq_rf(f0,gain)
-        
         for i in range(webInterface_inst.module_signal_processor.max_vfos):
-            webInterface_inst.module_signal_processor.vfo_freq[i] = f0
             app.push_mods({
                 f"vfo_{i}_freq" : {'value': f0}
             })
-
-        wavelength = 300 / webInterface_inst.daq_center_freq
-        #webInterface_inst.module_signal_processor.DOA_inter_elem_space = webInterface_inst.ant_spacing_meters / wavelength
-
-        if webInterface_inst.module_signal_processor.DOA_ant_alignment == "UCA":
-            # Convert RADIUS to INTERELEMENT SPACING
-            inter_elem_spacing = (np.sqrt(2)*webInterface_inst.ant_spacing_meters*np.sqrt(1-np.cos(np.deg2rad(360/webInterface_inst.module_signal_processor.channel_number))))
-            webInterface_inst.module_signal_processor.DOA_inter_elem_space = inter_elem_spacing / wavelength
-        else:
-            webInterface_inst.module_signal_processor.DOA_inter_elem_space = webInterface_inst.ant_spacing_meters / wavelength
 
         ant_spacing_wavelength = round(webInterface_inst.module_signal_processor.DOA_inter_elem_space, 3)
         app.push_mods({
