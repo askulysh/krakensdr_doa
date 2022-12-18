@@ -165,6 +165,10 @@ class SignalProcessor(threading.Thread):
         self.write_interval = 1
         self.last_write_time = [0] * self.max_vfos
 
+        self.begining = 0
+        self.bearingSNR = 0.0
+        self.bearingWidht = 0
+
     def resetPeakHold(self):
         if self.spectrum_fig_type == 'Single':
             self.peak_hold_spectrum = np.ones(self.spectrum_window_size) * -200
@@ -359,11 +363,31 @@ class SignalProcessor(threading.Thread):
 
                                     doa_result_log = DOA_plot_util(self.DOA)
 
+                                    argmax = np.argmax(doa_result_log)
+                                    argmin = np.argmin(doa_result_log)
+
                                     theta_0 = self.DOA_theta[np.argmax(doa_result_log)]
                                     conf_val = calculate_doa_papr(self.DOA)
 
                                     self.doa_max_list[i] = theta_0
                                     update_list[i] = True
+
+                                    self.bearing = theta_0
+                                    self.bearingSNR = argmax - argmin
+
+                                    width = 1
+
+                                    x = (theta_0 + 1) % 360
+                                    while doa_result_log[x] > argmax - 3 :
+                                        width = width + 1
+                                        x = (x + 1) % 360
+
+                                    x = (theta_0 - 1) % 360
+                                    while doa_result_log[x] > argmax - 3 :
+                                        width = width + 1
+                                        x = (x - 1) % 360
+
+                                    self.bearingWidht = width
 
                                     # DOA_str = str(int(theta_0))
                                     DOA_str = str(int(360 - theta_0))  # Change to this, once we upload new Android APK
@@ -434,6 +458,7 @@ class SignalProcessor(threading.Thread):
                             que_data_packet.append(['DoA Max List', self.doa_max_list])
 
                             if self.DOA_data_format == "DF Aggregator":
+                                confidence_str = "{:.2f}".format(100)
                                 self.wr_xml(self.station_id,
                                             DOA_str,
                                             confidence_str,
