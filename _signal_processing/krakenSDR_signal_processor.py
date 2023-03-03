@@ -165,9 +165,9 @@ class SignalProcessor(threading.Thread):
         self.write_interval = 1
         self.last_write_time = [0] * self.max_vfos
 
-        self.begining = 0
+        self.bearing = 0
         self.bearingSNR = 0.0
-        self.bearingWidht = 0
+        self.bearingWidth = 0
 
     def resetPeakHold(self):
         if self.spectrum_fig_type == 'Single':
@@ -377,17 +377,17 @@ class SignalProcessor(threading.Thread):
 
                                     width = 1
 
-                                    x = (theta_0 + 1) % 360
-                                    while doa_result_log[x] > argmax - 3 :
-                                        width = width + 1
-                                        x = (x + 1) % 360
+                                    #x = (theta_0 + 1) % 360
+                                    #while doa_result_log[x] > argmax - 3 :
+                                    #    width = width + 1
+                                    #    x = (x + 1) % 360
 
-                                    x = (theta_0 - 1) % 360
-                                    while doa_result_log[x] > argmax - 3 :
-                                        width = width + 1
-                                        x = (x - 1) % 360
+                                    #x = (theta_0 - 1) % 360
+                                    #while doa_result_log[x] > argmax - 3 :
+                                    #    width = width + 1
+                                    #    x = (x - 1) % 360
 
-                                    self.bearingWidht = width
+                                    self.bearingWidth = width
 
                                     # DOA_str = str(int(theta_0))
                                     DOA_str = str(int(360 - theta_0))  # Change to this, once we upload new Android APK

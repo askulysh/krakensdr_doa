@@ -24,6 +24,8 @@ def tune(f1, f2, gain, web) :
         print("wait")
         time.sleep(0.05)
 
+    return freq_low, freq_high
+
 def MeasureTrace(args, web) :
     sp = web.module_signal_processor
     FreqStart_Hz = int(args[0])
@@ -32,8 +34,8 @@ def MeasureTrace(args, web) :
     TraceCount = int(args[3])
     PreAmp_dB = -1
 
-    tune(FreqStart_Hz, FreqStop_Hz, PreAmp_dB, web)
-    FrequencyStep_Hz = sampling_freq/sp.spectrum_plot_size
+    freq_low, freq_high = tune(FreqStart_Hz, FreqStop_Hz, PreAmp_dB, web)
+    FrequencyStep_Hz = (freq_high-freq_low)/sp.spectrum_plot_size
     LevelMaxIndex = sp.spectrum_plot_size
     RBW_Hz = FrequencyStep_Hz
     TimeStamp = time.time()
@@ -49,13 +51,13 @@ def MeasureDF(args, web) :
     sp = web.module_signal_processor
     Freq_Hz = int(args[0])
     BearingCount = int(args[1])
-    RBW_Hz = int(argv[2])
-    BW_Hz = int(argv[3])
+    RBW_Hz = int(args[2])
+    BW_Hz = int(args[3])
     PreAmp_dB = -1
 
-    tune(Freq_Hz, Freq_Hz, PreAmp_dB, web)
+    freq_low, freq_high = tune(Freq_Hz, Freq_Hz, PreAmp_dB, web)
     FrequencyStart_Hz = freq_low
-    FrequencyStep_Hz = sampling_freq/sp.spectrum_plot_size
+    FrequencyStep_Hz = (freq_high-freq_low)/sp.spectrum_plot_size
     LevelMaxIndex = sp.spectrum_plot_size
     TimeStamp = time.time()
     PreAmp_dB = sp.module_receiver.daq_rx_gain
@@ -77,8 +79,8 @@ def MeasureDF(args, web) :
                 LevelMaxIndex,
                 RBW_Hz,
                 BearingAzimuth_deg,
-                BearingWidth_deg,
-                BearingSNR_deg,
+                BearingWidth,
+                BearingSNR,
 
                 CompassAzimuth_deg,
                 CompassElevation_deg,
